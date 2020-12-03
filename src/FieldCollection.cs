@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace HL7.Dotnetcore
 {
@@ -37,7 +37,7 @@ namespace HL7.Dotnetcore
         /// <param name="position">position</param>
         internal void Add(Field field, int position)
         {
-            int listCount = base.Count;
+            var listCount = base.Count;
 
             if (position < listCount)
             {
@@ -45,12 +45,12 @@ namespace HL7.Dotnetcore
             }
             else
             {
-                for (int fieldIndex = listCount; fieldIndex < position; fieldIndex++)
+                for (var fieldIndex = listCount; fieldIndex < position; fieldIndex++)
                 {
-                    Field blankField = new Field(string.Empty, field.Encoding);
+                    var blankField = new Field(string.Empty, field.Encoding);
                     base.Add(blankField);
                 }
-                
+
                 base.Add(field);
             }
         }

@@ -8,7 +8,7 @@ namespace HL7.Dotnetcore
 {
     public class Message
     {
-        private List<string> allSegments = null;
+        private List<string> _allSegments = null;
         internal Dictionary<string, List<Segment>> SegmentList { get; set; } = new Dictionary<string, List<Segment>>();
 
         public string HL7Message { get; set; }
@@ -19,13 +19,12 @@ namespace HL7.Dotnetcore
         public short SegmentCount { get; set; }
         public HL7Encoding Encoding { get; set; } = new HL7Encoding();
 
-        private const string segmentRegex = "^[A-Z][A-Z][A-Z1-9]$";
-        private const string fieldRegex = @"^([0-9]+)([\(\[]([0-9]+)[\)\]]){0,1}$";
-        private const string otherRegEx = @"^[1-9]([0-9]{1,2})?$";
+        private const string SegmentRegex = "^[A-Z][A-Z][A-Z1-9]$";
+        private const string FieldRegex = @"^([0-9]+)([\(\[]([0-9]+)[\)\]]){0,1}$";
+        private const string OtherRegEx = @"^[1-9]([0-9]{1,2})?$";
 
         public Message()
-        {
-        }
+        { }
 
         public Message(string strMessage)
         {
@@ -35,12 +34,12 @@ namespace HL7.Dotnetcore
         public override bool Equals(object obj)
         {
             if (obj is Message)
-                return this.Equals((obj as Message).HL7Message);
+                return Equals((obj as Message).HL7Message);
 
             if (obj is string)
             {
-                var arr1 = MessageHelper.SplitString(this.HL7Message, this.Encoding.SegmentDelimiter, StringSplitOptions.RemoveEmptyEntries);
-                var arr2 = MessageHelper.SplitString(obj as string, this.Encoding.SegmentDelimiter, StringSplitOptions.RemoveEmptyEntries);
+                var arr1 = MessageHelper.SplitString(HL7Message, Encoding.SegmentDelimiter, StringSplitOptions.RemoveEmptyEntries);
+                var arr2 = MessageHelper.SplitString(obj as string, Encoding.SegmentDelimiter, StringSplitOptions.RemoveEmptyEntries);
 
                 return arr1.SequenceEqual(arr2);
             }
@@ -50,7 +49,7 @@ namespace HL7.Dotnetcore
 
         public override int GetHashCode()
         {
-            return this.HL7Message.GetHashCode();
+            return HL7Message.GetHashCode();
         }
 
         /// <summary>
@@ -59,16 +58,16 @@ namespace HL7.Dotnetcore
         /// <returns>boolean</returns>
         public bool ParseMessage()
         {
-            bool isValid = false;
-            bool isParsed = false;
+            var isValid = false;
+            var isParsed = false;
 
             try
             {
-                isValid = this.validateMessage();
+                isValid = ValidateMessage();
             }
-            catch (HL7Exception ex)
+            catch (HL7Exception)
             {
-                throw ex;
+                throw;
             }
             catch (Exception ex)
             {
@@ -79,33 +78,33 @@ namespace HL7.Dotnetcore
             {
                 try
                 {
-                    if (this.allSegments == null || this.allSegments.Count <= 0)
-                        this.allSegments = MessageHelper.SplitMessage(HL7Message);
+                    if (_allSegments == null || _allSegments.Count <= 0)
+                        _allSegments = MessageHelper.SplitMessage(HL7Message);
 
-                    short SegSeqNo = 0;
+                    short segSeqNo = 0;
 
-                    foreach (string strSegment in this.allSegments)
+                    foreach (var strSegment in _allSegments)
                     {
                         if (string.IsNullOrWhiteSpace(strSegment))
                             continue;
 
-                        Segment newSegment = new Segment(this.Encoding)
+                        var newSegment = new Segment(Encoding)
                         {
                             Name = strSegment.Substring(0, 3),
                             Value = strSegment,
-                            SequenceNo = SegSeqNo++
+                            SequenceNo = segSeqNo++
                         };
 
-                        this.AddNewSegment(newSegment);
+                        AddNewSegment(newSegment);
                     }
 
-                    this.SegmentCount = SegSeqNo;
+                    SegmentCount = segSeqNo;
 
-                    string strSerializedMessage = string.Empty;
+                    var strSerializedMessage = string.Empty;
 
                     try
                     {
-                        strSerializedMessage = this.SerializeMessage(false); 
+                        strSerializedMessage = SerializeMessage(false);
                     }
                     catch (HL7Exception ex)
                     {
@@ -114,7 +113,7 @@ namespace HL7.Dotnetcore
 
                     if (!string.IsNullOrEmpty(strSerializedMessage))
                     {
-                        if (this.Equals(strSerializedMessage))
+                        if (Equals(strSerializedMessage))
                             isParsed = true;
                     }
                     else
@@ -127,7 +126,7 @@ namespace HL7.Dotnetcore
                     throw new HL7Exception("Failed to parse the message with error - " + ex.Message, HL7Exception.PARSING_ERROR);
                 }
             }
-            
+
             return isParsed;
         }
 
@@ -138,29 +137,29 @@ namespace HL7.Dotnetcore
         /// <returns>string with HL7 message</returns>
         public string SerializeMessage(bool validate)
         {
-            if (validate && !this.validateMessage())
+            if (validate && !ValidateMessage())
                 throw new HL7Exception("Failed to validate the updated message", HL7Exception.BAD_MESSAGE);
 
             var strMessage = new StringBuilder();
-            string currentSegName = string.Empty;
-            List<Segment> _segListOrdered = getAllSegmentsInOrder();
+            var currentSegName = string.Empty;
+            var segListOrdered = GetAllSegmentsInOrder();
 
             try
             {
                 try
                 {
-                    foreach (Segment seg in _segListOrdered)
+                    foreach (var seg in segListOrdered)
                     {
                         currentSegName = seg.Name;
 
                         strMessage.Append(seg.Name);
-                        
+
                         if (seg.FieldList.Count > 0)
                             strMessage.Append(Encoding.FieldDelimiter);
 
-                        int startField = currentSegName == "MSH" ? 1 : 0;
+                        var startField = currentSegName == "MSH" ? 1 : 0;
 
-                        for (int i = startField; i<seg.FieldList.Count; i++)
+                        for (var i = startField; i < seg.FieldList.Count; i++)
                         {
                             if (i > startField)
                                 strMessage.Append(Encoding.FieldDelimiter);
@@ -175,18 +174,18 @@ namespace HL7.Dotnetcore
 
                             if (field.HasRepetitions)
                             {
-                                for (int j = 0; j < field.RepeatitionList.Count; j++)
+                                for (var j = 0; j < field.RepeatitionList.Count; j++)
                                 {
                                     if (j > 0)
                                         strMessage.Append(Encoding.RepeatDelimiter);
 
-                                    serializeField(field.RepeatitionList[j], strMessage);
+                                    SerializeField(field.RepeatitionList[j], strMessage);
                                 }
                             }
                             else
-                                serializeField(field, strMessage);
+                                SerializeField(field, strMessage);
                         }
-                        
+
                         strMessage.Append(Encoding.SegmentDelimiter);
                     }
                 }
@@ -194,7 +193,7 @@ namespace HL7.Dotnetcore
                 {
                     if (currentSegName == "MSH")
                         throw new HL7Exception("Failed to serialize the MSH segment with error - " + ex.Message, HL7Exception.SERIALIZATION_ERROR);
-                    else 
+                    else
                         throw;
                 }
 
@@ -213,31 +212,28 @@ namespace HL7.Dotnetcore
         /// <returns>Value of specified field/component/subcomponent</returns>
         public string GetValue(string strValueFormat)
         {
-            string segmentName = string.Empty;
-            int componentIndex = 0;
-            int subComponentIndex = 0;
-            string strValue = string.Empty;
-            List<string> allComponents = MessageHelper.SplitString(strValueFormat, new char[] { '.' });
+            var allComponents = MessageHelper.SplitString(strValueFormat, new char[] { '.' });
+            var comCount = allComponents.Count;
+            var isValid = ValidateValueFormat(allComponents);
 
-            int comCount = allComponents.Count;
-            bool isValid = validateValueFormat(allComponents);
-
+            string strValue;
             if (isValid)
             {
-                segmentName = allComponents[0];
+                var segmentName = allComponents[0];
 
                 if (SegmentList.ContainsKey(segmentName))
                 {
                     var segment = SegmentList[segmentName].First();
 
+                    int componentIndex;
                     if (comCount == 4)
                     {
-                        Int32.TryParse(allComponents[2], out componentIndex);
-                        Int32.TryParse(allComponents[3], out subComponentIndex);
+                        _ = int.TryParse(allComponents[2], out componentIndex);
+                        _ = int.TryParse(allComponents[3], out var subComponentIndex);
 
                         try
                         {
-                            var field = this.getField(segment, allComponents[1]);
+                            var field = GetField(segment, allComponents[1]);
                             strValue = field.ComponentList[componentIndex - 1].SubComponentList[subComponentIndex - 1].Value;
                         }
                         catch (Exception ex)
@@ -247,11 +243,11 @@ namespace HL7.Dotnetcore
                     }
                     else if (comCount == 3)
                     {
-                        Int32.TryParse(allComponents[2], out componentIndex);
+                        _ = int.TryParse(allComponents[2], out componentIndex);
 
                         try
                         {
-                            var field = this.getField(segment, allComponents[1]);
+                            var field = GetField(segment, allComponents[1]);
                             strValue = field.ComponentList[componentIndex - 1].Value;
                         }
                         catch (Exception ex)
@@ -263,7 +259,7 @@ namespace HL7.Dotnetcore
                     {
                         try
                         {
-                            var field = this.getField(segment, allComponents[1]);
+                            var field = GetField(segment, allComponents[1]);
                             strValue = field.Value;
                         }
                         catch (Exception ex)
@@ -304,30 +300,28 @@ namespace HL7.Dotnetcore
         /// <returns>boolean</returns>
         public bool SetValue(string strValueFormat, string strValue)
         {
-            bool isSet = false;
-            string segmentName = string.Empty;
-            int componentIndex = 0;
-            int subComponentIndex = 0;
-            List<string> allComponents = MessageHelper.SplitString(strValueFormat, new char[] { '.' });
-            int comCount = allComponents.Count;
-            bool isValid = validateValueFormat(allComponents);
+            var allComponents = MessageHelper.SplitString(strValueFormat, new char[] { '.' });
+            var comCount = allComponents.Count;
+            var isValid = ValidateValueFormat(allComponents);
 
+            bool isSet;
             if (isValid)
             {
-                segmentName = allComponents[0];
+                var segmentName = allComponents[0];
 
                 if (SegmentList.ContainsKey(segmentName))
                 {
                     var segment = SegmentList[segmentName].First();
 
+                    int componentIndex;
                     if (comCount == 4)
                     {
-                        Int32.TryParse(allComponents[2], out componentIndex);
-                        Int32.TryParse(allComponents[3], out subComponentIndex);
+                        _ = int.TryParse(allComponents[2], out componentIndex);
+                        _ = int.TryParse(allComponents[3], out var subComponentIndex);
 
                         try
                         {
-                            var field = this.getField(segment, allComponents[1]);
+                            var field = GetField(segment, allComponents[1]);
                             field.ComponentList[componentIndex - 1].SubComponentList[subComponentIndex - 1].Value = strValue;
                             isSet = true;
                         }
@@ -338,11 +332,11 @@ namespace HL7.Dotnetcore
                     }
                     else if (comCount == 3)
                     {
-                        Int32.TryParse(allComponents[2], out componentIndex);
+                        _ = int.TryParse(allComponents[2], out componentIndex);
 
                         try
                         {
-                            var field = this.getField(segment, allComponents[1]);
+                            var field = GetField(segment, allComponents[1]);
                             field.ComponentList[componentIndex - 1].Value = strValue;
                             isSet = true;
                         }
@@ -355,7 +349,7 @@ namespace HL7.Dotnetcore
                     {
                         try
                         {
-                            var field = this.getField(segment, allComponents[1]);
+                            var field = GetField(segment, allComponents[1]);
                             field.Value = strValue;
                             isSet = true;
                         }
@@ -385,24 +379,20 @@ namespace HL7.Dotnetcore
         /// <returns>boolean</returns>
         public bool IsComponentized(string strValueFormat)
         {
-            bool isComponentized = false;
-            string segmentName = string.Empty;
-            List<string> allComponents = MessageHelper.SplitString(strValueFormat, new char[] { '.' });
-            int comCount = allComponents.Count;
-            bool isValid = validateValueFormat(allComponents);
+            var allComponents = MessageHelper.SplitString(strValueFormat, new char[] { '.' });
+            var isValid = ValidateValueFormat(allComponents);
 
             if (isValid)
             {
-                segmentName = allComponents[0];
-
-                if (comCount >= 2)
+                var segmentName = allComponents[0];
+                if (allComponents.Count >= 2)
                 {
                     try
                     {
                         var segment = SegmentList[segmentName].First();
-                        var field = this.getField(segment, allComponents[1]);
+                        var field = GetField(segment, allComponents[1]);
 
-                        isComponentized = field.IsComponentized;
+                        return field.IsComponentized;
                     }
                     catch (Exception ex)
                     {
@@ -415,7 +405,6 @@ namespace HL7.Dotnetcore
             else
                 throw new HL7Exception("Request format is not valid");
 
-            return isComponentized;
         }
 
         /// <summary>
@@ -425,24 +414,21 @@ namespace HL7.Dotnetcore
         /// <returns>boolean</returns>
         public bool HasRepetitions(string strValueFormat)
         {
-            bool hasRepetitions = false;
-            string segmentName = string.Empty;
-            List<string> allComponents = MessageHelper.SplitString(strValueFormat, new char[] { '.' });
-            int comCount = allComponents.Count;
-            bool isValid = validateValueFormat(allComponents);
+            var allComponents = MessageHelper.SplitString(strValueFormat, new char[] { '.' });
+            var isValid = ValidateValueFormat(allComponents);
 
             if (isValid)
             {
-                segmentName = allComponents[0];
+                var segmentName = allComponents[0];
 
-                if (comCount >= 2)
+                if (allComponents.Count >= 2)
                 {
                     try
                     {
                         var segment = SegmentList[segmentName].First();
-                        var field = this.getField(segment, allComponents[1]);
+                        var field = GetField(segment, allComponents[1]);
 
-                        hasRepetitions = field.HasRepetitions;
+                        return field.HasRepetitions;
                     }
                     catch (Exception ex)
                     {
@@ -454,8 +440,6 @@ namespace HL7.Dotnetcore
             }
             else
                 throw new HL7Exception("Request format is not valid");
-
-            return hasRepetitions;
         }
 
         /// <summary>
@@ -465,26 +449,21 @@ namespace HL7.Dotnetcore
         /// <returns>boolean</returns>
         public bool IsSubComponentized(string strValueFormat)
         {
-            bool isSubComponentized = false;
-            string segmentName = string.Empty;
-            int componentIndex = 0;
-            List<string> allComponents = MessageHelper.SplitString(strValueFormat, new char[] { '.' });
-            int comCount = allComponents.Count;
-            bool isValid = validateValueFormat(allComponents);
+            var allComponents = MessageHelper.SplitString(strValueFormat, new char[] { '.' });
+            var isValid = ValidateValueFormat(allComponents);
 
             if (isValid)
             {
-                segmentName = allComponents[0];
+                var segmentName = allComponents[0];
 
-                if (comCount >= 3)
+                if (allComponents.Count >= 3)
                 {
                     try
                     {
                         var segment = SegmentList[segmentName].First();
-                        var field = this.getField(segment, allComponents[1]);
-
-                        Int32.TryParse(allComponents[2], out componentIndex);
-                        isSubComponentized = field.ComponentList[componentIndex - 1].IsSubComponentized;
+                        var field = GetField(segment, allComponents[1]);
+                        _ = int.TryParse(allComponents[2], out var componentIndex);
+                        return field.ComponentList[componentIndex - 1].IsSubComponentized;
                     }
                     catch (Exception ex)
                     {
@@ -497,7 +476,6 @@ namespace HL7.Dotnetcore
             else
                 throw new HL7Exception("Request format is not valid");
 
-            return isSubComponentized;
         }
 
         /// <summary>
@@ -506,7 +484,7 @@ namespace HL7.Dotnetcore
         /// <returns>An ACK message if success, otherwise null</returns>
         public Message GetACK()
         {
-            return this.createAckMessage("AA", false, null);
+            return CreateAckMessage("AA", false, null);
         }
 
         /// <summary>
@@ -517,7 +495,7 @@ namespace HL7.Dotnetcore
         /// <returns>A NACK message if success, otherwise null</returns>
         public Message GetNACK(string code, string errMsg)
         {
-            return this.createAckMessage(code, true, errMsg);
+            return CreateAckMessage(code, true, errMsg);
         }
 
         /// <summary>
@@ -550,7 +528,7 @@ namespace HL7.Dotnetcore
         /// <param name="segmentName">Segment to be removed</param>
         /// <param name="index">Zero-based index of the segment to be removed, in case of multiple. Default is 0.</param>
         /// <returns>True if found and removed successfully, otherwise false</returns>
-        public bool RemoveSegment(string segmentName, int index = 0) 
+        public bool RemoveSegment(string segmentName, int index = 0)
         {
             try
             {
@@ -574,17 +552,17 @@ namespace HL7.Dotnetcore
 
         public List<Segment> Segments()
         {
-            return getAllSegmentsInOrder();
+            return GetAllSegmentsInOrder();
         }
 
         public List<Segment> Segments(string segmentName)
         {
-            return getAllSegmentsInOrder().FindAll(o=> o.Name.Equals(segmentName));
+            return GetAllSegmentsInOrder().FindAll(o => o.Name.Equals(segmentName));
         }
 
         public Segment DefaultSegment(string segmentName)
         {
-            return getAllSegmentsInOrder().First(o => o.Name.Equals(segmentName));
+            return GetAllSegmentsInOrder().First(o => o.Name.Equals(segmentName));
         }
 
         /// <summary>
@@ -602,17 +580,17 @@ namespace HL7.Dotnetcore
         public void AddSegmentMSH(string sendingApplication, string sendingFacility, string receivingApplication, string receivingFacility,
             string security, string messageType, string messageControlID, string processingID, string version)
         {
-                var dateString = MessageHelper.LongDateWithFractionOfSecond(DateTime.Now);
-                var delim = this.Encoding.FieldDelimiter;
+            var dateString = MessageHelper.LongDateWithFractionOfSecond(DateTime.Now);
+            var delim = Encoding.FieldDelimiter;
 
-                string response = "MSH" + this.Encoding.AllDelimiters + delim + sendingApplication + delim + sendingFacility + delim 
-                    + receivingApplication + delim + receivingFacility + delim
-                    + dateString + delim + (security ?? string.Empty) + delim + messageType + delim + messageControlID + delim 
-                    + processingID + delim + version + this.Encoding.SegmentDelimiter;
+            var response = "MSH" + Encoding.AllDelimiters + delim + sendingApplication + delim + sendingFacility + delim
+                + receivingApplication + delim + receivingFacility + delim
+                + dateString + delim + (security ?? string.Empty) + delim + messageType + delim + messageControlID + delim
+                + processingID + delim + version + Encoding.SegmentDelimiter;
 
-                var message = new Message(response);
-                message.ParseMessage();
-                this.AddNewSegment(message.DefaultSegment("MSH"));
+            var message = new Message(response);
+            message.ParseMessage();
+            AddNewSegment(message.DefaultSegment("MSH"));
         }
 
         /// <summary>
@@ -622,11 +600,11 @@ namespace HL7.Dotnetcore
         /// <returns>MLLP escaped byte array</returns>
         public byte[] GetMLLP(bool validate = false)
         {
-            string hl7 = this.SerializeMessage(validate);
+            var hl7 = SerializeMessage(validate);
 
             return MessageHelper.GetMLLP(hl7);
         }
-        
+
         /// <summary>
         /// Builds an ACK or NACK message for this message
         /// </summary>
@@ -634,55 +612,55 @@ namespace HL7.Dotnetcore
         /// <param name="isNack">true for generating a NACK message, otherwise false</param>
         /// <param name="errMsg">error message to be sent with NACK</param>
         /// <returns>An ACK or NACK message if success, otherwise null</returns>
-        private Message createAckMessage(string code, bool isNack, string errMsg)
+        private Message CreateAckMessage(string code, bool isNack, string errMsg)
         {
             var response = new StringBuilder();
 
-            if (this.MessageStructure != "ACK")
+            if (MessageStructure != "ACK")
             {
                 var dateString = MessageHelper.LongDateWithFractionOfSecond(DateTime.Now);
-                var msh = this.SegmentList["MSH"].First();
-                var delim = this.Encoding.FieldDelimiter;
-                
-                response.Append("MSH").Append(this.Encoding.AllDelimiters).Append(delim).Append(msh.FieldList[4].Value).Append(delim).Append(msh.FieldList[5].Value).Append(delim)
+                var msh = SegmentList["MSH"].First();
+                var delim = Encoding.FieldDelimiter;
+
+                response.Append("MSH").Append(Encoding.AllDelimiters).Append(delim).Append(msh.FieldList[4].Value).Append(delim).Append(msh.FieldList[5].Value).Append(delim)
                     .Append(msh.FieldList[2].Value).Append(delim).Append(msh.FieldList[3].Value).Append(delim)
-                    .Append(dateString).Append(delim).Append(delim).Append("ACK").Append(delim).Append(this.MessageControlID).Append(delim)
-                    .Append(this.ProcessingID).Append(delim).Append(this.Version).Append(this.Encoding.SegmentDelimiter);
-                
-                response.Append("MSA").Append(delim).Append(code).Append(delim).Append(this.MessageControlID).Append((isNack ? delim + errMsg : string.Empty)).Append(this.Encoding.SegmentDelimiter);
+                    .Append(dateString).Append(delim).Append(delim).Append("ACK").Append(delim).Append(MessageControlID).Append(delim)
+                    .Append(ProcessingID).Append(delim).Append(Version).Append(Encoding.SegmentDelimiter);
+
+                response.Append("MSA").Append(delim).Append(code).Append(delim).Append(MessageControlID).Append((isNack ? delim + errMsg : string.Empty)).Append(Encoding.SegmentDelimiter);
             }
             else
             {
                 return null;
             }
 
-            try 
+            try
             {
                 var message = new Message(response.ToString());
                 message.ParseMessage();
                 return message;
             }
-            catch 
+            catch
             {
                 return null;
             }
         }
 
 
-        private Field getField(Segment segment, string index)
+        private static Field GetField(Segment segment, string index)
         {
-            int repetition = 0;
-            var matches = System.Text.RegularExpressions.Regex.Matches(index, fieldRegex);
+            var repetition = 0;
+            var matches = Regex.Matches(index, FieldRegex);
 
             if (matches.Count < 1)
                 throw new Exception("Invalid field index");
 
-            Int32.TryParse(matches[0].Groups[1].Value, out int fieldIndex);
+            _ = int.TryParse(matches[0].Groups[1].Value, out var fieldIndex);
             fieldIndex--;
 
             if (matches[0].Length > 3)
             {
-                Int32.TryParse(matches[0].Groups[3].Value, out repetition);
+                _ = int.TryParse(matches[0].Groups[3].Value, out repetition);
                 repetition--;
             }
 
@@ -698,7 +676,7 @@ namespace HL7.Dotnetcore
         /// Validates the HL7 message for basic syntax
         /// </summary>
         /// <returns>A boolean indicating whether the whole message is valid or not</returns>
-        private bool validateMessage()
+        private bool ValidateMessage()
         {
             try
             {
@@ -716,20 +694,20 @@ namespace HL7.Dotnetcore
                         throw new HL7Exception("MSH segment not found at the beggining of the message", HL7Exception.BAD_MESSAGE);
                     }
 
-                    this.Encoding.EvaluateSegmentDelimiter(this.HL7Message);
-                    this.HL7Message = string.Join(this.Encoding.SegmentDelimiter, MessageHelper.SplitMessage(this.HL7Message)) + this.Encoding.SegmentDelimiter;
+                    Encoding.EvaluateSegmentDelimiter(HL7Message);
+                    HL7Message = string.Join(Encoding.SegmentDelimiter, MessageHelper.SplitMessage(HL7Message)) + Encoding.SegmentDelimiter;
 
                     // Check Segment Name & 4th character of each segment
-                    char fourthCharMSH = HL7Message[3];
-                    this.allSegments = MessageHelper.SplitMessage(HL7Message);
+                    var fourthCharMSH = HL7Message[3];
+                    _allSegments = MessageHelper.SplitMessage(HL7Message);
 
-                    foreach (string strSegment in this.allSegments)
+                    foreach (var strSegment in _allSegments)
                     {
                         if (string.IsNullOrWhiteSpace(strSegment))
                             continue;
 
-                        string segmentName = strSegment.Substring(0, 3);
-                        bool isValidSegmentName = System.Text.RegularExpressions.Regex.IsMatch(segmentName, segmentRegex);
+                        var segmentName = strSegment.Substring(0, 3);
+                        var isValidSegmentName = System.Text.RegularExpressions.Regex.IsMatch(segmentName, SegmentRegex);
 
                         if (!isValidSegmentName)
                         {
@@ -742,11 +720,11 @@ namespace HL7.Dotnetcore
                         }
                     }
 
-                    string _fieldDelimiters_Message = this.allSegments[0].Substring(3, 8 - 3);
-                    this.Encoding.EvaluateDelimiters(_fieldDelimiters_Message);
+                    var fieldDelimiters_Message = _allSegments[0].Substring(3, 8 - 3);
+                    Encoding.EvaluateDelimiters(fieldDelimiters_Message);
 
                     // Count field separators, MSH.12 is required so there should be at least 11 field separators in MSH
-                    int countFieldSepInMSH = this.allSegments[0].Count(f => f == Encoding.FieldDelimiter);
+                    var countFieldSepInMSH = _allSegments[0].Count(f => f == Encoding.FieldDelimiter);
 
                     if (countFieldSepInMSH < 11)
                     {
@@ -754,37 +732,32 @@ namespace HL7.Dotnetcore
                     }
 
                     // Find Message Version
-                    var MSHFields = MessageHelper.SplitString(this.allSegments[0], Encoding.FieldDelimiter);
+                    var mshFields = MessageHelper.SplitString(_allSegments[0], Encoding.FieldDelimiter);
 
-                    if (MSHFields.Count >= 12)
-                    {
-                        this.Version = MessageHelper.SplitString(MSHFields[11], Encoding.ComponentDelimiter)[0];
-                    }
-                    else
-                    {
-                        throw new HL7Exception("HL7 version not found in the MSH segment", HL7Exception.REQUIRED_FIELD_MISSING);
-                    }
+                    Version = mshFields.Count >= 12
+                        ? MessageHelper.SplitString(mshFields[11], Encoding.ComponentDelimiter)[0]
+                        : throw new HL7Exception("HL7 version not found in the MSH segment", HL7Exception.REQUIRED_FIELD_MISSING);
 
                     // Find Message Type & Trigger Event
                     try
                     {
-                        string MSH_9 = MSHFields[8];
+                        var msh_9 = mshFields[8];
 
-                        if (!string.IsNullOrEmpty(MSH_9))
+                        if (!string.IsNullOrEmpty(msh_9))
                         {
-                            var MSH_9_comps = MessageHelper.SplitString(MSH_9, this.Encoding.ComponentDelimiter);
+                            var msh_9_comps = MessageHelper.SplitString(msh_9, Encoding.ComponentDelimiter);
 
-                            if (MSH_9_comps.Count >= 3)
+                            if (msh_9_comps.Count >= 3)
                             {
-                                this.MessageStructure = MSH_9_comps[2];
+                                MessageStructure = msh_9_comps[2];
                             }
-                            else if (MSH_9_comps.Count > 0 && MSH_9_comps[0] != null && MSH_9_comps[0].Equals("ACK"))
+                            else if (msh_9_comps.Count > 0 && msh_9_comps[0] != null && msh_9_comps[0].Equals("ACK"))
                             {
-                                this.MessageStructure = "ACK";
+                                MessageStructure = "ACK";
                             }
-                            else if (MSH_9_comps.Count == 2)
+                            else if (msh_9_comps.Count == 2)
                             {
-                                this.MessageStructure = MSH_9_comps[0] + "_" + MSH_9_comps[1];
+                                MessageStructure = msh_9_comps[0] + "_" + msh_9_comps[1];
                             }
                             else
                             {
@@ -801,9 +774,9 @@ namespace HL7.Dotnetcore
 
                     try
                     {
-                        this.MessageControlID = MSHFields[9];
+                        MessageControlID = mshFields[9];
 
-                        if (string.IsNullOrEmpty(this.MessageControlID))
+                        if (string.IsNullOrEmpty(MessageControlID))
                             throw new HL7Exception("MSH.10 - Message Control ID not found", HL7Exception.REQUIRED_FIELD_MISSING);
                     }
                     catch (Exception ex)
@@ -813,9 +786,9 @@ namespace HL7.Dotnetcore
 
                     try
                     {
-                        this.ProcessingID = MSHFields[10];
+                        ProcessingID = mshFields[10];
 
-                        if (string.IsNullOrEmpty(this.ProcessingID))
+                        if (string.IsNullOrEmpty(ProcessingID))
                             throw new HL7Exception("MSH.11 - Processing ID not found", HL7Exception.REQUIRED_FIELD_MISSING);
                     }
                     catch (Exception ex)
@@ -838,13 +811,13 @@ namespace HL7.Dotnetcore
         /// Serializes a field into a string with proper encoding
         /// </summary>
         /// <returns>A serialized string</returns>
-        private void serializeField(Field field, StringBuilder strMessage)
+        private void SerializeField(Field field, StringBuilder strMessage)
         {
             if (field.ComponentList.Count > 0)
             {
-                int indexCom = 0;
+                var indexCom = 0;
 
-                foreach (Component com in field.ComponentList)
+                foreach (var com in field.ComponentList)
                 {
                     indexCom++;
                     if (com.SubComponentList.Count > 0)
@@ -865,38 +838,38 @@ namespace HL7.Dotnetcore
         /// Get all segments in order as they appear in original message. This the usual order: IN1|1 IN2|1 IN1|2 IN2|2
         /// </summary>
         /// <returns>A list of segments in the proper order</returns>
-        private List<Segment> getAllSegmentsInOrder()
+        private List<Segment> GetAllSegmentsInOrder()
         {
-            List<Segment> _list = new List<Segment>();
+            var list = new List<Segment>();
 
-            foreach (string segName in SegmentList.Keys)
+            foreach (var segName in SegmentList.Keys)
             {
-                foreach (Segment seg in SegmentList[segName])
+                foreach (var seg in SegmentList[segName])
                 {
-                    _list.Add(seg);
+                    list.Add(seg);
                 }
             }
 
-            return _list.OrderBy(o => o.SequenceNo).ToList();
+            return list.OrderBy(o => o.SequenceNo).ToList();
         }
 
         /// <summary>
         /// Validates the components of a value's position descriptor
         /// </summary>
         /// <returns>A boolean indicating whether all the components are valid or not</returns>
-        private bool validateValueFormat(List<string> allComponents)
+        private static bool ValidateValueFormat(List<string> allComponents)
         {
-            bool isValid = false;
+            var isValid = false;
 
             if (allComponents.Count > 0)
             {
-                if (Regex.IsMatch(allComponents[0], segmentRegex))
+                if (Regex.IsMatch(allComponents[0], SegmentRegex))
                 {
-                    for (int i = 1; i < allComponents.Count; i++)
+                    for (var i = 1; i < allComponents.Count; i++)
                     {
-                        if (i == 1 && Regex.IsMatch(allComponents[i], fieldRegex))
+                        if (i == 1 && Regex.IsMatch(allComponents[i], FieldRegex))
                             isValid = true;
-                        else if (i > 1 && Regex.IsMatch(allComponents[i], otherRegEx))
+                        else if (i > 1 && Regex.IsMatch(allComponents[i], OtherRegEx))
                             isValid = true;
                         else
                             return false;

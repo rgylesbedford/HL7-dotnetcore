@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 
 namespace HL7.Dotnetcore
@@ -15,27 +15,26 @@ namespace HL7.Dotnetcore
         public string PresentButNull { get; set; } = "\"\"";
 
         public HL7Encoding()
-        {
-        }
+        { }
 
         public void EvaluateDelimiters(string delimiters)
         {
-            this.FieldDelimiter = delimiters[0];
-            this.ComponentDelimiter = delimiters[1];
-            this.RepeatDelimiter = delimiters[2];
-            this.EscapeCharacter = delimiters[3];
-            this.SubComponentDelimiter = delimiters[4];
+            FieldDelimiter = delimiters[0];
+            ComponentDelimiter = delimiters[1];
+            RepeatDelimiter = delimiters[2];
+            EscapeCharacter = delimiters[3];
+            SubComponentDelimiter = delimiters[4];
         }
 
         public void EvaluateSegmentDelimiter(string message)
         {
-            string[] delimiters = new[] { "\r\n", "\n\r", "\r", "\n" };
+            var delimiters = new[] { "\r\n", "\n\r", "\r", "\n" };
 
             foreach (var delim in delimiters)
             {
                 if (message.Contains(delim))
                 {
-                    this.SegmentDelimiter = delim;
+                    SegmentDelimiter = delim;
                     return;
                 }
             }
@@ -45,63 +44,68 @@ namespace HL7.Dotnetcore
 
         // Encoding methods based on https://github.com/elomagic/hl7inspector
 
-        public  string Encode(string val)
+        public string Encode(string val)
         {
             if (val == null)
+            {
                 return PresentButNull;
+            }
 
             if (string.IsNullOrWhiteSpace(val))
+            {
                 return val;
+            }
 
             var sb = new StringBuilder();
 
-            for (int i = 0; i < val.Length; i++) 
+            for (var i = 0; i < val.Length; i++)
             {
-                char c = val[i];
+                var c = val[i];
 
-                if (c == this.ComponentDelimiter) 
+                if (c == ComponentDelimiter)
                 {
-                    sb.Append(this.EscapeCharacter);
-                    sb.Append("S");
-                    sb.Append(this.EscapeCharacter);
-                } 
-                else if (c == this.EscapeCharacter) 
+                    sb.Append(EscapeCharacter);
+                    sb.Append('S');
+                    sb.Append(EscapeCharacter);
+                }
+                else if (c == EscapeCharacter)
                 {
-                    sb.Append(this.EscapeCharacter);
-                    sb.Append("E");
-                    sb.Append(this.EscapeCharacter);
-                } 
-                else if (c == this.FieldDelimiter) 
+                    sb.Append(EscapeCharacter);
+                    sb.Append('E');
+                    sb.Append(EscapeCharacter);
+                }
+                else if (c == FieldDelimiter)
                 {
-                    sb.Append(this.EscapeCharacter);
-                    sb.Append("F");
-                    sb.Append(this.EscapeCharacter);
-                } 
-                else if (c == this.RepeatDelimiter) 
+                    sb.Append(EscapeCharacter);
+                    sb.Append('F');
+                    sb.Append(EscapeCharacter);
+                }
+                else if (c == RepeatDelimiter)
                 {
-                    sb.Append(this.EscapeCharacter);
-                    sb.Append("R");
-                    sb.Append(this.EscapeCharacter);
-                } 
-                else if (c == this.SubComponentDelimiter) 
+                    sb.Append(EscapeCharacter);
+                    sb.Append('R');
+                    sb.Append(EscapeCharacter);
+                }
+                else if (c == SubComponentDelimiter)
                 {
-                    sb.Append(this.EscapeCharacter);
-                    sb.Append("T");
-                    sb.Append(this.EscapeCharacter);
-                } 
+                    sb.Append(EscapeCharacter);
+                    sb.Append('T');
+                    sb.Append(EscapeCharacter);
+                }
                 else if (c == 10 || c == 13) // All other non-visible characters will be preserved
                 {
-                    string v = string.Format("{0:X2}",(int)c);
-                    
-                    if ((v.Length | 2) != 0) 
+                    var v = string.Format("{0:X2}", (int)c);
+
+                    if ((v.Length | 2) != 0)
                         v = "0" + v;
 
-                    sb.Append(this.EscapeCharacter);
-                    sb.Append("X");
+                    sb.Append(EscapeCharacter);
+                    sb.Append('X');
                     sb.Append(v);
-                    sb.Append(this.EscapeCharacter);
-                } 
-                else {
+                    sb.Append(EscapeCharacter);
+                }
+                else
+                {
                     sb.Append(c);
                 }
             }
@@ -116,28 +120,28 @@ namespace HL7.Dotnetcore
 
             var result = new StringBuilder();
 
-            for (int i = 0; i < encodedValue.Length; i++)
+            for (var i = 0; i < encodedValue.Length; i++)
             {
-                char c = encodedValue[i];
+                var c = encodedValue[i];
 
-                if (c != this.EscapeCharacter)
+                if (c != EscapeCharacter)
                 {
                     result.Append(c);
                     continue;
                 }
 
                 i++;
-                int li = encodedValue.IndexOf(this.EscapeCharacter, i);
+                var li = encodedValue.IndexOf(EscapeCharacter, i);
 
                 if (li == -1)
                     throw new HL7Exception("Invalid escape sequence in HL7 string");
 
-                string seq = encodedValue.Substring(i, li-i);
+                var seq = encodedValue.Substring(i, li - i);
                 i = li;
 
                 if (seq.Length == 0)
                     continue;
-            
+
                 switch (seq)
                 {
                     case "H": // Start higlighting
@@ -147,19 +151,19 @@ namespace HL7.Dotnetcore
                         result.Append("</B>");
                         break;
                     case "F": // field separator
-                        result.Append(this.FieldDelimiter);
+                        result.Append(FieldDelimiter);
                         break;
                     case "S": // component separator
-                        result.Append(this.ComponentDelimiter);
+                        result.Append(ComponentDelimiter);
                         break;
                     case "T": // subcomponent separator
-                        result.Append(this.SubComponentDelimiter);
+                        result.Append(SubComponentDelimiter);
                         break;
                     case "R": // repetition separator
-                        result.Append(this.RepeatDelimiter);
+                        result.Append(RepeatDelimiter);
                         break;
                     case "E": // escape character
-                        result.Append(this.EscapeCharacter);
+                        result.Append(EscapeCharacter);
                         break;
                     case ".br":
                         result.Append("<BR>");

@@ -1,24 +1,23 @@
-namespace HL7.Dotnetcore
+﻿namespace HL7.Dotnetcore
 {
     public abstract class MessageElement
     {
-        protected string _value = string.Empty;
-       
-        
-        public  string Value 
-        { 
-            get 
+        protected string RawValue { get; private set; } = string.Empty;
+
+        public string Value
+        {
+            get
             {
-                return _value == Encoding.PresentButNull ? null : _value; 
+                return RawValue == Encoding.PresentButNull ? null : RawValue;
             }
-            set 
-            { 
-                _value = value; 
-                ProcessValue(); 
+            set
+            {
+                RawValue = value;
+                ProcessValue();
             }
         }
 
-        public HL7Encoding Encoding { get; protected set; }
+        public HL7Encoding Encoding { get; protected set; } = new HL7Encoding();
 
         protected abstract void ProcessValue();
     }

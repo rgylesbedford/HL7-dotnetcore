@@ -6,7 +6,7 @@ namespace HL7.Dotnetcore
 {
     public class Field : MessageElement
     {
-        private List<Field> _RepetitionList;
+        private List<Field> _repetitionList;
 
         internal ComponentCollection ComponentList { get; set; }
 
@@ -18,80 +18,82 @@ namespace HL7.Dotnetcore
         {
             get
             {
-                if (_RepetitionList == null)
-                    _RepetitionList = new List<Field>();
-                    
-                return _RepetitionList;
+                if (_repetitionList == null)
+                    _repetitionList = new List<Field>();
+
+                return _repetitionList;
             }
             set
             {
-                _RepetitionList = value;
+                _repetitionList = value;
             }
         }
 
         protected override void ProcessValue()
         {
-            if (this.IsDelimiters)  // Special case for the delimiters fields (MSH)
+            if (IsDelimiters)  // Special case for the delimiters fields (MSH)
             {
-                var subcomponent = new SubComponent(_value, this.Encoding);
+                var subcomponent = new SubComponent(RawValue, Encoding);
 
-                this.ComponentList = new ComponentCollection();
-                Component component = new Component(this.Encoding, true);
+                ComponentList = new ComponentCollection();
+                var component = new Component(Encoding, true);
 
                 component.SubComponentList.Add(subcomponent);
 
-                this.ComponentList.Add(component);
+                ComponentList.Add(component);
                 return;
             }
 
-            this.HasRepetitions = _value.Contains(this.Encoding.RepeatDelimiter);
+            HasRepetitions = RawValue.Contains(Encoding.RepeatDelimiter);
 
-            if (this.HasRepetitions)
+            if (HasRepetitions)
             {
-                _RepetitionList = new List<Field>();
-                List<string> individualFields = MessageHelper.SplitString(_value, this.Encoding.RepeatDelimiter);
+                _repetitionList = new List<Field>();
+                var individualFields = MessageHelper.SplitString(RawValue, Encoding.RepeatDelimiter);
 
-                for (int index = 0; index < individualFields.Count; index++)
+                for (var index = 0; index < individualFields.Count; index++)
                 {
-                    Field field = new Field(individualFields[index], this.Encoding);
-                    _RepetitionList.Add(field);
+                    var field = new Field(individualFields[index], Encoding);
+                    _repetitionList.Add(field);
                 }
             }
             else
             {
-                List<string> allComponents = MessageHelper.SplitString(_value, this.Encoding.ComponentDelimiter);
+                var allComponents = MessageHelper.SplitString(RawValue, Encoding.ComponentDelimiter);
 
-                this.ComponentList = new ComponentCollection();
+                ComponentList = new ComponentCollection();
 
-                foreach (string strComponent in allComponents)
+                foreach (var strComponent in allComponents)
                 {
-                    Component component = new Component(this.Encoding);
-                    component.Value = strComponent;
-                    this.ComponentList.Add(component);
+                    var component = new Component(Encoding)
+                    {
+                        Value = strComponent
+                    };
+                    ComponentList.Add(component);
                 }
 
-                this.IsComponentized = this.ComponentList.Count > 1;
+                IsComponentized = ComponentList.Count > 1;
             }
         }
 
         public Field(HL7Encoding encoding)
         {
-            this.ComponentList = new ComponentCollection();
-            this.Encoding = encoding;
+            ComponentList = new ComponentCollection();
+            Encoding = encoding;
         }
 
         public Field(string value, HL7Encoding encoding)
         {
-            this.ComponentList = new ComponentCollection();
-            this.Encoding = encoding;
-            this.Value = value;
+            ComponentList = new ComponentCollection();
+            Encoding = encoding;
+            Value = value;
         }
 
         public bool AddNewComponent(Component com)
         {
             try
             {
-                this.ComponentList.Add(com);
+                ComponentList.Add(com);
                 return true;
             }
             catch (Exception ex)
@@ -104,7 +106,7 @@ namespace HL7.Dotnetcore
         {
             try
             {
-                this.ComponentList.Add(component, position);
+                ComponentList.Add(component, position);
                 return true;
             }
             catch (Exception ex)
@@ -115,7 +117,7 @@ namespace HL7.Dotnetcore
 
         public Component Components(int position)
         {
-            position = position - 1;
+            position -= 1;
 
             try
             {
@@ -134,20 +136,12 @@ namespace HL7.Dotnetcore
 
         public List<Field> Repetitions()
         {
-            if (this.HasRepetitions)
-            {
-                return RepeatitionList;
-            }
-            return null;
+            return HasRepetitions ? RepeatitionList : null;
         }
 
         public Field Repetitions(int repeatitionNumber)
         {
-            if (this.HasRepetitions)
-            {
-                return RepeatitionList[repeatitionNumber - 1];
-            }
-            return null;
+            return HasRepetitions ? RepeatitionList[repeatitionNumber - 1] : null;
         }
 
         public bool RemoveEmptyTrailingComponents()

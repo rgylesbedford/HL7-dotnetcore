@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace HL7.Dotnetcore
 {
@@ -11,12 +11,9 @@ namespace HL7.Dotnetcore
         {
             get
             {
-                Component component = null;
-
-                if (index < base.Count)
-                    component = base[index];
-
-                return component;
+                return index < base.Count
+                    ? base[index]
+                    : null;
             }
             set
             {
@@ -40,8 +37,8 @@ namespace HL7.Dotnetcore
         /// <param name="position">Position</param>
         internal void Add(Component component, int position)
         {
-            int listCount = base.Count;
-            position = position - 1;
+            var listCount = base.Count;
+            position -= 1;
 
             if (position < listCount)
             {
@@ -49,10 +46,12 @@ namespace HL7.Dotnetcore
             }
             else
             {
-                for (int comIndex = listCount; comIndex < position; comIndex++)
+                for (var comIndex = listCount; comIndex < position; comIndex++)
                 {
-                    Component blankComponent = new Component(component.Encoding);
-                    blankComponent.Value = string.Empty;
+                    var blankComponent = new Component(component.Encoding)
+                    {
+                        Value = string.Empty
+                    };
                     base.Add(blankComponent);
                 }
 

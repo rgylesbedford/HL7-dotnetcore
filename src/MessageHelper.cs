@@ -9,7 +9,7 @@ namespace HL7.Dotnetcore
 {
     public static class MessageHelper
     {
-        private static string[] lineSeparators = { "\r\n", "\n\r", "\r", "\n" };
+        private static readonly string[] s_lineSeparators = { "\r\n", "\n\r", "\r", "\n" };
 
         public static List<string> SplitString(string strStringToSplit, string splitBy, StringSplitOptions splitOptions = StringSplitOptions.None)
         {
@@ -28,7 +28,7 @@ namespace HL7.Dotnetcore
 
         public static List<string> SplitMessage(string message)
         {
-            return message.Split(lineSeparators, StringSplitOptions.None).Where(m => !string.IsNullOrWhiteSpace(m)).ToList();
+            return message.Split(s_lineSeparators, StringSplitOptions.None).Where(m => !string.IsNullOrWhiteSpace(m)).ToList();
         }
 
         public static string LongDateWithFractionOfSecond(DateTime dt)
@@ -50,7 +50,7 @@ namespace HL7.Dotnetcore
 
         public static DateTime? ParseDateTime(string dateTimeString, bool throwExeption = false)
         {
-            return ParseDateTime(dateTimeString, out TimeSpan offset, throwExeption);
+            return ParseDateTime(dateTimeString, out _, throwExeption);
         }
 
         public static DateTime? ParseDateTime(string dateTimeString, out TimeSpan offset, bool throwExeption = false)
@@ -61,21 +61,23 @@ namespace HL7.Dotnetcore
             try
             {
                 if (matches.Count != 1)
+                {
                     throw new FormatException("Invalid date format");
+                }
 
                 var groups = matches[0].Groups;
-                int year = int.Parse(groups[1].Value);
-                int month = groups[2].Success ? int.Parse(groups[2].Value, CultureInfo.InvariantCulture) : 1;
-                int day = groups[3].Success ? int.Parse(groups[3].Value, CultureInfo.InvariantCulture) : 1;
-                int hours = groups[4].Success ? int.Parse(groups[4].Value, CultureInfo.InvariantCulture) : 0;
-                int mins = groups[5].Success ? int.Parse(groups[5].Value, CultureInfo.InvariantCulture) : 0;
+                var year = int.Parse(groups[1].Value);
+                var month = groups[2].Success ? int.Parse(groups[2].Value, CultureInfo.InvariantCulture) : 1;
+                var day = groups[3].Success ? int.Parse(groups[3].Value, CultureInfo.InvariantCulture) : 1;
+                var hours = groups[4].Success ? int.Parse(groups[4].Value, CultureInfo.InvariantCulture) : 0;
+                var mins = groups[5].Success ? int.Parse(groups[5].Value, CultureInfo.InvariantCulture) : 0;
 
-                float fsecs = groups[6].Success ? float.Parse(groups[6].Value, CultureInfo.InvariantCulture) : 0;
-                int secs = (int)Math.Truncate(fsecs);
-                int msecs = (int)Math.Truncate(fsecs * 1000) % 1000;
+                var fsecs = groups[6].Success ? float.Parse(groups[6].Value, CultureInfo.InvariantCulture) : 0;
+                var secs = (int)Math.Truncate(fsecs);
+                var msecs = (int)Math.Truncate(fsecs * 1000) % 1000;
 
-                int tzh = groups[7].Success ? int.Parse(groups[7].Value, CultureInfo.InvariantCulture) : 0;
-                int tzm = groups[8].Success ? int.Parse(groups[8].Value, CultureInfo.InvariantCulture) : 0;
+                var tzh = groups[7].Success ? int.Parse(groups[7].Value, CultureInfo.InvariantCulture) : 0;
+                var tzm = groups[8].Success ? int.Parse(groups[8].Value, CultureInfo.InvariantCulture) : 0;
                 offset = new TimeSpan(tzh, tzm, 0);
 
                 return new DateTime(year, month, day, hours, mins, secs, msecs);
@@ -83,8 +85,11 @@ namespace HL7.Dotnetcore
             catch
             {
                 if (throwExeption)
+                {
                     throw;
+                }
 
+                offset = default;
                 return null;
             }
         }
@@ -98,10 +103,12 @@ namespace HL7.Dotnetcore
         public static byte[] GetMLLP(string message, Encoding encoding = null)
         {
             if (encoding == null)
+            {
                 encoding = Encoding.UTF8;
-            
-            byte[] data = encoding.GetBytes(message);
-            byte[] buffer = new byte[data.Length + 3];
+            }
+
+            var data = encoding.GetBytes(message);
+            var buffer = new byte[data.Length + 3];
             buffer[0] = 11; // VT
 
             Array.Copy(data, 0, buffer, 1, data.Length);
