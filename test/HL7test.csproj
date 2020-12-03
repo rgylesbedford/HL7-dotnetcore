@@ -3,11 +3,9 @@
   <PropertyGroup>
     <Copyright>(c) Efferent Health, LLC</Copyright>
     <VersionPrefix>2.20.0</VersionPrefix>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFrameworks>netcoreapp2.1;netcoreapp3.1;net5.0</TargetFrameworks>
     <AssemblyName>HL7Test</AssemblyName>
-    <PackageId>HL7Test</PackageId>
-    <OutputType>exe</OutputType>
-    <StartupObject>HL7.Dotnetcore.Test.HL7Test</StartupObject>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,7 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!--PackageReference Include="hl7-dotnetcore" Version="2.17.0" /-->
     <ProjectReference Include="..\src\HL7-dotnetcore.csproj" />
   </ItemGroup>
 </Project>
