@@ -1,27 +1,37 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <Description>Lightweight HL7 2.x library compatible with .Net Standard and .Net Core</Description>
-    <Copyright>(c) Efferent Health, LLC</Copyright>
-    <VersionPrefix>2.20.0</VersionPrefix>
-    <TargetFrameworks>netstandard1.6;netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup Label="Build">
     <AssemblyName>HL7-dotnetcore</AssemblyName>
-    <PackageId>HL7-dotnetcore</PackageId>
-    <PackageTags>hl7;dotnetcore</PackageTags>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/Efferent-Health/HL7-dotnetcore</RepositoryUrl>
+    <TargetFrameworks>netstandard1.6;netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
+    <VersionPrefix>2.20.0</VersionPrefix>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <PackageTags>hl7 dotnetcore hl7-parser hl7-writer</PackageTags>
+  <PropertyGroup Label="Package">
+    <Copyright>(c) Efferent Health, LLC</Copyright>
+    <Description>Lightweight HL7 2.x library compatible with .Net Standard and .Net Core</Description>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>HL7-dotnetcore</PackageId>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/Efferent-Health/HL7-dotnetcore</PackageProjectUrl>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/Efferent-Health/HL7-dotnetcore</RepositoryUrl>
+    <PackageTags>hl7 dotnetcore hl7-parser hl7-writer</PackageTags>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+  <PropertyGroup Label="Package - SourceLink">
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+
+  <PropertyGroup Label="Package - SourceLink - Deterministic Builds" Condition="'$(TF_BUILD)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup Label="Package References">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="../LICENSE.txt" Pack="true" PackagePath="$(PackageLicenseFile)" />
